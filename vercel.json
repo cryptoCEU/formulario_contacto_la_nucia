@@ -3,7 +3,6 @@
   "name": "elementor-monday-webhook",
   "functions": {
     "api/**/*.js": {
-      "runtime": "nodejs20.x",
       "maxDuration": 15
     }
   },
