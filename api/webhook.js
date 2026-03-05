@@ -12,11 +12,11 @@ const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET;
 // ── Valores permitidos por campo ─────────────────────────────
 // Estos valores deben coincidir EXACTAMENTE con las opciones en Monday
 const ALLOWED_VALUES = {
-  idioma_de_contacto:   ["Castellano", "Alemán", "Catalán", "Croata", "Francés", "Inglés", "Otros", "Polaco", "Ruso", "Sueco", "Ucraniano"],
-  destino_de_vivienda:  ["Primera vivienda", "Segunda vivienda", "Inversión", "Reposición"],
-  num_dormitorios:      ["2 Dormitorios", "3 Dormitorios", "4 Dormitorios", "Local Comercial", "Garaje", "Trastero"],
-  presupuesto_estimado: ["- 100K", "100K - 150K", "150K - 200K", "200K - 250K", "250K - 300K", "300K - 350K", "350K - 400K", "400K - 450K", "450K - 500K", "500K - 550K", "550K - 600K", "600K - 650K", "650K - 700K", "700K - 750K", "750K - 800K", "800K - 850K", "850K - 900K", "900K - 950K", "950K - 1M", "+ 1M"],
-  edad:                 ["< 30", "31 - 45", "46 - 55", "56 - 65", "> 65"],
+  "Idioma de Contacto":   ["Castellano", "Alemán", "Catalán", "Croata", "Francés", "Inglés", "Otros", "Polaco", "Ruso", "Sueco", "Ucraniano"],
+  "Destino de Vivienda":  ["Primera vivienda", "Segunda vivienda", "Inversión", "Reposición"],
+  "Nº de Dormitorios":    ["2 Dormitorios", "3 Dormitorios", "4 Dormitorios", "Local Comercial", "Garaje", "Trastero"],
+  "Presupuesto estimado": ["- 100K", "100K - 150K", "150K - 200K", "200K - 250K", "250K - 300K", "300K - 350K", "350K - 400K", "400K - 450K", "450K - 500K", "500K - 550K", "550K - 600K", "600K - 650K", "650K - 700K", "700K - 750K", "750K - 800K", "800K - 850K", "850K - 900K", "900K - 950K", "950K - 1M", "+ 1M"],
+  "Edad":                 ["< 30", "31 - 45", "46 - 55", "56 - 65", "> 65"],
 };
 
 // ── Mapeo de campos de Elementor → columnas de Monday ────────
@@ -100,14 +100,17 @@ function buildColumnValues(formData) {
   // Origen del contacto siempre fijo como "Formulario web"
   columns["color_mks9ct6h"] = { label: "Formulario web" };
 
+  // Tipo de gestión siempre fijo como "Mail"
+  columns["color_mks7cm2f"] = { label: "Mail" };
+
   return JSON.stringify(columns);
 }
 
 // ── Extrae el nombre del item ─────────────────────────────────
 function getItemName(formData) {
   return (
-    formData["nombre_y_apellidos"] ||
-    formData["correo_electronico"] ||
+    formData["Nombre y Apellidos"] ||
+    formData["Correo electrónico"] ||
     `Lead ${new Date().toLocaleString("es-ES")}`
   );
 }
@@ -181,7 +184,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const formData = req.body;
+    // Elementor envía form-urlencoded — parseamos si es necesario
+    let formData = req.body;
+    if (typeof formData === "string") {
+      formData = Object.fromEntries(new URLSearchParams(formData));
+    }
 
     if (process.env.NODE_ENV !== "production") {
       console.log("📨 Datos recibidos de Elementor:", JSON.stringify(formData, null, 2));
