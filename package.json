@@ -1,0 +1,25 @@
+{
+  "name": "elementor-monday-webhook",
+  "version": "1.0.0",
+  "description": "Webhook bridge entre Elementor Pro y Monday.com via API GraphQL",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "lint": "eslint api/"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "devDependencies": {
+    "vercel": "^37.0.0"
+  },
+  "keywords": [
+    "elementor",
+    "monday",
+    "webhook",
+    "wordpress",
+    "vercel"
+  ],
+  "license": "MIT"
+}
