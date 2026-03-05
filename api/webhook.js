@@ -28,8 +28,9 @@ const FIELD_MAP = {
   codigo_postal:        { id: "text_mm12yqx0",      type: "text"     },  // Código Postal
   destino_de_vivienda:  { id: "color_mm0ee37e",     type: "status"   },  // Destino vivienda
   edad:                 { id: "color_mksg46wh",     type: "status"   },  // Rango Edad
+  num_dormitorios:      ["2 Dormitorios", "3 Dormitorios", "4 Dormitorios", "Local Comercial", "Garaje", "Trastero"],
   presupuesto_estimado: { id: "color_mm1274dx",     type: "status"   },  // Presupuesto
-  num_dormitorios:      { id: "dropdown_mksdgtr8",  type: "dropdown" },  // Detalle tipología
+  num_dormitorios:      { id: "dropdown_mksd92xa",  type: "dropdown" },  // Tipología interés
   idioma_de_contacto:   { id: "dropdown_mm131mxd",  type: "dropdown" },  // Idioma preferido
 };
 
