@@ -76,6 +76,9 @@ function buildColumnValues(formData) {
     }
   }
 
+  // Política de Privacidad siempre marcada como aceptada
+  columns["boolean_mkvw55qp"] = JSON.stringify({ checked: "true" });
+
   // Estado Lead siempre fijo como "Lead nuevo"
   columns["lead_status"] = JSON.stringify({ label: "Lead nuevo" });
 
