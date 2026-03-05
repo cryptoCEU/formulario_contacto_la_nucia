@@ -3,6 +3,23 @@
 //  Endpoint: POST /api/webhook
 // ============================================================
 
+// Desactivar el body parser de Vercel para manejarlo manualmente
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Lee el body crudo de la petición
+async function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", chunk => { data += chunk; });
+    req.on("end",  () => resolve(data));
+    req.on("error", reject);
+  });
+}
+
 const MONDAY_API_URL = "https://api.monday.com/v2";
 const MONDAY_API_KEY  = process.env.MONDAY_API_KEY;
 const MONDAY_BOARD_ID = process.env.MONDAY_BOARD_ID;
@@ -184,10 +201,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Elementor envía form-urlencoded — parseamos si es necesario
-    let formData = req.body;
-    if (typeof formData === "string") {
-      formData = Object.fromEntries(new URLSearchParams(formData));
+    // Leer y parsear el body manualmente
+    const rawBody = await getRawBody(req);
+    const contentType = req.headers["content-type"] || "";
+    let formData;
+
+    if (contentType.includes("application/json")) {
+      formData = JSON.parse(rawBody);
+    } else {
+      // form-urlencoded (lo que envía Elementor Pro)
+      formData = Object.fromEntries(new URLSearchParams(rawBody));
     }
 
     if (process.env.NODE_ENV !== "production") {
