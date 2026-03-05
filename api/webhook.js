@@ -30,7 +30,7 @@ const ALLOWED_VALUES = {
   "Destino de Vivienda":  ["Primera vivienda", "Segunda vivienda", "Inversión", "Reposición"],
   "Nº de Dormitorios":    ["2 Dormitorios", "3 Dormitorios", "4 Dormitorios", "Local Comercial", "Garaje", "Trastero"],
   "Presupuesto estimado": ["- 100K", "100K - 150K", "150K - 200K", "200K - 250K", "250K - 300K", "300K - 350K", "350K - 400K", "400K - 450K", "450K - 500K", "500K - 550K", "550K - 600K", "600K - 650K", "650K - 700K", "700K - 750K", "750K - 800K", "800K - 850K", "850K - 900K", "900K - 950K", "950K - 1M", "+ 1M"],
-  "Edad":                 ["< 30", "31 - 45", "46 - 55", "56 - 65", "> 65"],
+  "Edad":                 ["> 30", "31 - 45", "46 - 55", "56 - 65", "< 65"],
 };
 
 // ── Mapeo campos Elementor → columnas Monday ──────────────────
