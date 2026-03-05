@@ -53,7 +53,7 @@ function formatColumnValue(type, value) {
 
     case "text":
     case "long_text":
-      return { text: value };
+      return value;
 
     case "date": {
       const d = new Date(value);
