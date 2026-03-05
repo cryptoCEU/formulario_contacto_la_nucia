@@ -56,7 +56,13 @@ function formatColumnValue(type, value) {
     case "phone":    return { phone: value.replace(/\s/g, ""), countryShortName: "ES" };
     case "text":     return value;
     case "status":   return { label: value };
-    case "dropdown": return { labels: [value] };
+    case "dropdown": {
+      // Acepta valor único o múltiples separados por coma
+      const labels = Array.isArray(value)
+        ? value
+        : value.split(",").map(v => v.trim()).filter(Boolean);
+      return { labels };
+    }
     case "date":     return { date: new Date(value).toISOString().split("T")[0] };
     case "numbers":  return parseFloat(value) || 0;
     default:         return value;
@@ -156,12 +162,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Body vacío." });
     }
 
-    // Validación de valores permitidos
+    // Validación de valores permitidos (soporta múltiples separados por coma)
     const errors = [];
     for (const [field, allowed] of Object.entries(ALLOWED_VALUES)) {
-      const value = formData[field];
-      if (value && !allowed.includes(value)) {
-        errors.push(`"${field}": "${value}" no válido. Opciones: ${allowed.join(", ")}`);
+      const raw = formData[field];
+      if (!raw) continue;
+      const values = Array.isArray(raw) ? raw : raw.split(",").map(v => v.trim()).filter(Boolean);
+      for (const v of values) {
+        if (!allowed.includes(v)) {
+          errors.push(`"${field}": "${v}" no válido. Opciones: ${allowed.join(", ")}`);
+        }
       }
     }
     if (errors.length > 0) return res.status(400).json({ error: "Valores no válidos", details: errors });
