@@ -46,8 +46,10 @@ function formatColumnValue(type, value) {
     case "email":
       return { email: value, text: value };
 
-    case "phone":
-      return { phone: value, countryShortName: "ES" };
+    case "phone": {
+      const clean = value.replace(/\s/g, "");
+      return { phone: clean, countryShortName: "ES" };
+    }
 
     case "text":
     case "long_text":
