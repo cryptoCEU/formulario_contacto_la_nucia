@@ -5,9 +5,7 @@
 
 // Desactivar el body parser de Vercel para manejarlo manualmente
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 // Lee el body crudo de la petición
@@ -27,7 +25,6 @@ const MONDAY_GROUP_ID = process.env.MONDAY_GROUP_ID || "topics";
 const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET;
 
 // ── Valores permitidos por campo ─────────────────────────────
-// Estos valores deben coincidir EXACTAMENTE con las opciones en Monday
 const ALLOWED_VALUES = {
   "Idioma de Contacto":   ["Castellano", "Alemán", "Catalán", "Croata", "Francés", "Inglés", "Otros", "Polaco", "Ruso", "Sueco", "Ucraniano"],
   "Destino de Vivienda":  ["Primera vivienda", "Segunda vivienda", "Inversión", "Reposición"],
@@ -36,64 +33,37 @@ const ALLOWED_VALUES = {
   "Edad":                 ["< 30", "31 - 45", "46 - 55", "56 - 65", "> 65"],
 };
 
-// ── Mapeo de campos de Elementor → columnas de Monday ────────
-// Clave izquierda = ID del campo en tu formulario de Elementor
+// ── Mapeo campos Elementor → columnas Monday ──────────────────
+// Las claves son los nombres EXACTOS que envía Elementor Pro
 const FIELD_MAP = {
-  nombre_y_apellidos:   { id: "name",              type: "name"     },  // Nombre
-  correo_electronico:   { id: "lead_email",         type: "email"    },  // E-mail
-  telefono:             { id: "lead_phone",          type: "phone"    },  // Teléfono
-  codigo_postal:        { id: "text_mm12yqx0",      type: "text"     },  // Código Postal
-  destino_de_vivienda:  { id: "color_mm0ee37e",     type: "status"   },  // Destino vivienda
-  edad:                 { id: "color_mksg46wh",     type: "status"   },  // Rango Edad
-  num_dormitorios:      ["2 Dormitorios", "3 Dormitorios", "4 Dormitorios", "Local Comercial", "Garaje", "Trastero"],
-  presupuesto_estimado: { id: "color_mm1274dx",     type: "status"   },  // Presupuesto
-  num_dormitorios:      { id: "dropdown_mksd92xa",  type: "dropdown" },  // Tipología interés
-  idioma_de_contacto:   { id: "dropdown_mm131mxd",  type: "dropdown" },  // Idioma preferido
+  "Nombre y Apellidos":   { id: "name",             type: "name"     },
+  "Correo electrónico":   { id: "lead_email",        type: "email"    },
+  "Teléfono":             { id: "lead_phone",         type: "phone"    },
+  "Código Postal":        { id: "text_mm12yqx0",     type: "text"     },
+  "Destino de Vivienda":  { id: "color_mm0ee37e",    type: "status"   },
+  "Edad":                 { id: "color_mksg46wh",    type: "status"   },
+  "Presupuesto estimado": { id: "color_mm1274dx",    type: "status"   },
+  "Nº de Dormitorios":    { id: "dropdown_mksd92xa", type: "dropdown" },
+  "Idioma de Contacto":   { id: "dropdown_mm131mxd", type: "dropdown" },
 };
 
-// ── Formateadores por tipo de columna de Monday ──────────────
-// Devuelven objetos planos (NO strings) — la serialización final
-// se hace una sola vez en buildColumnValues con JSON.stringify
+// ── Formateadores por tipo ────────────────────────────────────
 function formatColumnValue(type, value) {
   if (!value) return null;
-
   switch (type) {
-    case "name":
-      return value;
-
-    case "email":
-      return { email: value, text: value };
-
-    case "phone": {
-      const clean = value.replace(/\s/g, "");
-      return { phone: clean, countryShortName: "ES" };
-    }
-
-    case "text":
-    case "long_text":
-      return value;
-
-    case "date": {
-      const d = new Date(value);
-      const dateStr = d.toISOString().split("T")[0];
-      return { date: dateStr };
-    }
-
-    case "status":
-      return { label: value };
-
-    case "dropdown":
-      return { labels: [value] };
-
-    case "numbers":
-      return parseFloat(value) || 0;
-
-    default:
-      return value;
+    case "name":     return value;
+    case "email":    return { email: value, text: value };
+    case "phone":    return { phone: value.replace(/\s/g, ""), countryShortName: "ES" };
+    case "text":     return value;
+    case "status":   return { label: value };
+    case "dropdown": return { labels: [value] };
+    case "date":     return { date: new Date(value).toISOString().split("T")[0] };
+    case "numbers":  return parseFloat(value) || 0;
+    default:         return value;
   }
 }
 
-// ── Construye column_values para la mutación GraphQL ─────────
+// ── Construye column_values ───────────────────────────────────
 function buildColumnValues(formData) {
   const columns = {};
 
@@ -101,29 +71,20 @@ function buildColumnValues(formData) {
     if (config.type === "name") continue;
     const rawValue = formData[formField];
     if (!rawValue) continue;
-
     const formatted = formatColumnValue(config.type, rawValue);
-    if (formatted !== null) {
-      columns[config.id] = formatted;
-    }
+    if (formatted !== null) columns[config.id] = formatted;
   }
 
-  // Política de Privacidad siempre marcada como aceptada
-  columns["boolean_mkvw55qp"] = { checked: "true" };
-
-  // Estado Lead siempre fijo como "Lead nuevo"
-  columns["lead_status"] = { label: "Lead nuevo" };
-
-  // Origen del contacto siempre fijo como "Formulario web"
-  columns["color_mks9ct6h"] = { label: "Formulario web" };
-
-  // Tipo de gestión siempre fijo como "Mail"
-  columns["color_mks7cm2f"] = { label: "Mail" };
+  // Valores fijos automáticos
+  columns["boolean_mkvw55qp"] = { checked: "true" };          // Política de Privacidad
+  columns["lead_status"]       = { label: "Lead nuevo" };      // Estado Lead
+  columns["color_mks9ct6h"]    = { label: "Formulario web" };  // Origen del contacto
+  columns["color_mks7cm2f"]    = { label: "Mail" };            // Tipo de gestión
 
   return JSON.stringify(columns);
 }
 
-// ── Extrae el nombre del item ─────────────────────────────────
+// ── Nombre del item ───────────────────────────────────────────
 function getItemName(formData) {
   return (
     formData["Nombre y Apellidos"] ||
@@ -132,23 +93,16 @@ function getItemName(formData) {
   );
 }
 
-// ── Envía la mutación a Monday.com ───────────────────────────
+// ── Mutación Monday.com ───────────────────────────────────────
 async function createMondayItem(formData) {
-  const itemName     = getItemName(formData);
-  const columnValues = buildColumnValues(formData);
-
   const mutation = `
     mutation {
       create_item(
         board_id: ${MONDAY_BOARD_ID},
         group_id: "${MONDAY_GROUP_ID}",
-        item_name: ${JSON.stringify(itemName)},
-        column_values: ${JSON.stringify(columnValues)}
-      ) {
-        id
-        name
-        url
-      }
+        item_name: ${JSON.stringify(getItemName(formData))},
+        column_values: ${JSON.stringify(buildColumnValues(formData))}
+      ) { id name url }
     }
   `;
 
@@ -163,79 +117,57 @@ async function createMondayItem(formData) {
   });
 
   const result = await response.json();
-
-  if (result.errors) {
-    throw new Error(`Monday API error: ${JSON.stringify(result.errors)}`);
-  }
-
+  if (result.errors) throw new Error(`Monday API error: ${JSON.stringify(result.errors)}`);
   return result.data.create_item;
 }
 
-// ── Verifica el secreto del webhook ──────────────────────────
+// ── Secreto ───────────────────────────────────────────────────
 function verifySecret(req) {
   if (!WEBHOOK_SECRET) return true;
   const incoming = req.headers["x-webhook-secret"] || req.headers["authorization"];
   return incoming === WEBHOOK_SECRET || incoming === `Bearer ${WEBHOOK_SECRET}`;
 }
 
-// ── Handler principal de Vercel ──────────────────────────────
+// ── Handler principal ─────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin",  "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-webhook-secret");
 
   if (req.method === "OPTIONS") return res.status(200).end();
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido. Usa POST." });
-  }
-
-  if (!verifySecret(req)) {
-    return res.status(401).json({ error: "No autorizado. Secreto incorrecto." });
-  }
+  if (req.method !== "POST")    return res.status(405).json({ error: "Usa POST." });
+  if (!verifySecret(req))       return res.status(401).json({ error: "No autorizado." });
 
   if (!MONDAY_API_KEY || !MONDAY_BOARD_ID) {
-    return res.status(500).json({
-      error: "Configuración incompleta. Revisa MONDAY_API_KEY y MONDAY_BOARD_ID.",
-    });
+    return res.status(500).json({ error: "Faltan variables de entorno." });
   }
 
   try {
-    // Leer y parsear el body manualmente
-    const rawBody = await getRawBody(req);
+    // Parsear body — soporta JSON (Postman) y form-urlencoded (Elementor)
+    const rawBody     = await getRawBody(req);
     const contentType = req.headers["content-type"] || "";
-    let formData;
+    const formData    = contentType.includes("application/json")
+      ? JSON.parse(rawBody)
+      : Object.fromEntries(new URLSearchParams(rawBody));
 
-    if (contentType.includes("application/json")) {
-      formData = JSON.parse(rawBody);
-    } else {
-      // form-urlencoded (lo que envía Elementor Pro)
-      formData = Object.fromEntries(new URLSearchParams(rawBody));
-    }
-
-    if (process.env.NODE_ENV !== "production") {
-      console.log("📨 Datos recibidos de Elementor:", JSON.stringify(formData, null, 2));
-    }
+    console.log("📨 Datos recibidos:", JSON.stringify(formData, null, 2));
 
     if (!formData || Object.keys(formData).length === 0) {
-      return res.status(400).json({ error: "Cuerpo de la petición vacío." });
+      return res.status(400).json({ error: "Body vacío." });
     }
 
-    // Validar que los valores estén dentro de los permitidos
-    const validationErrors = [];
+    // Validación de valores permitidos
+    const errors = [];
     for (const [field, allowed] of Object.entries(ALLOWED_VALUES)) {
       const value = formData[field];
       if (value && !allowed.includes(value)) {
-        validationErrors.push(`Campo "${field}": valor "${value}" no permitido. Valores válidos: ${allowed.join(", ")}`);
+        errors.push(`"${field}": "${value}" no válido. Opciones: ${allowed.join(", ")}`);
       }
     }
-    if (validationErrors.length > 0) {
-      return res.status(400).json({ error: "Valores no válidos", details: validationErrors });
-    }
+    if (errors.length > 0) return res.status(400).json({ error: "Valores no válidos", details: errors });
 
     const item = await createMondayItem(formData);
-
-    console.log(`✅ Item creado en Monday: ID ${item.id} — "${item.name}"`);
+    console.log(`✅ Item creado: ${item.id} — "${item.name}"`);
 
     return res.status(200).json({
       success: true,
@@ -244,7 +176,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("❌ Error al crear item en Monday:", error.message);
+    console.error("❌ Error:", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
