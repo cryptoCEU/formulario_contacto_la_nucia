@@ -9,6 +9,16 @@ const MONDAY_BOARD_ID = process.env.MONDAY_BOARD_ID;
 const MONDAY_GROUP_ID = process.env.MONDAY_GROUP_ID || "topics";
 const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET;
 
+// ── Valores permitidos por campo ─────────────────────────────
+// Estos valores deben coincidir EXACTAMENTE con las opciones en Monday
+const ALLOWED_VALUES = {
+  idioma_de_contacto:   ["Castellano", "Alemán", "Catalán", "Croata", "Francés", "Inglés", "Otros", "Polaco", "Ruso", "Sueco", "Ucraniano"],
+  destino_de_vivienda:  ["Primera vivienda", "Segunda vivienda", "Inversión", "Reposición"],
+  num_dormitorios:      ["2 Dormitorios", "3 Dormitorios", "4 Dormitorios", "Local Comercial", "Garaje", "Trastero"],
+  presupuesto_estimado: ["- 100K", "100K - 150K", "150K - 200K", "200K - 250K", "250K - 300K", "300K - 350K", "350K - 400K", "400K - 450K", "450K - 500K", "500K - 550K", "550K - 600K", "600K - 650K", "650K - 700K", "700K - 750K", "750K - 800K", "800K - 850K", "850K - 900K", "900K - 950K", "950K - 1M", "+ 1M"],
+  edad:                 ["< 30", "31 - 45", "46 - 55", "56 - 65", "> 65"],
+};
+
 // ── Mapeo de campos de Elementor → columnas de Monday ────────
 // Clave izquierda = ID del campo en tu formulario de Elementor
 const FIELD_MAP = {
@@ -24,6 +34,8 @@ const FIELD_MAP = {
 };
 
 // ── Formateadores por tipo de columna de Monday ──────────────
+// Devuelven objetos planos (NO strings) — la serialización final
+// se hace una sola vez en buildColumnValues con JSON.stringify
 function formatColumnValue(type, value) {
   if (!value) return null;
 
@@ -32,32 +44,32 @@ function formatColumnValue(type, value) {
       return value;
 
     case "email":
-      return JSON.stringify({ email: value, text: value });
+      return { email: value, text: value };
 
     case "phone":
-      return JSON.stringify({ phone: value, countryShortName: "ES" });
+      return { phone: value, countryShortName: "ES" };
 
     case "text":
     case "long_text":
-      return JSON.stringify({ text: value });
+      return { text: value };
 
     case "date": {
       const d = new Date(value);
       const dateStr = d.toISOString().split("T")[0];
-      return JSON.stringify({ date: dateStr });
+      return { date: dateStr };
     }
 
     case "status":
-      return JSON.stringify({ label: value });
+      return { label: value };
 
     case "dropdown":
-      return JSON.stringify({ labels: [value] });
+      return { labels: [value] };
 
     case "numbers":
-      return String(parseFloat(value) || 0);
+      return parseFloat(value) || 0;
 
     default:
-      return JSON.stringify(value);
+      return value;
   }
 }
 
@@ -77,13 +89,13 @@ function buildColumnValues(formData) {
   }
 
   // Política de Privacidad siempre marcada como aceptada
-  columns["boolean_mkvw55qp"] = JSON.stringify({ checked: "true" });
+  columns["boolean_mkvw55qp"] = { checked: "true" };
 
   // Estado Lead siempre fijo como "Lead nuevo"
-  columns["lead_status"] = JSON.stringify({ label: "Lead nuevo" });
+  columns["lead_status"] = { label: "Lead nuevo" };
 
   // Origen del contacto siempre fijo como "Formulario web"
-  columns["color_mks9ct6h"] = JSON.stringify({ label: "Formulario web" });
+  columns["color_mks9ct6h"] = { label: "Formulario web" };
 
   return JSON.stringify(columns);
 }
@@ -174,6 +186,18 @@ export default async function handler(req, res) {
 
     if (!formData || Object.keys(formData).length === 0) {
       return res.status(400).json({ error: "Cuerpo de la petición vacío." });
+    }
+
+    // Validar que los valores estén dentro de los permitidos
+    const validationErrors = [];
+    for (const [field, allowed] of Object.entries(ALLOWED_VALUES)) {
+      const value = formData[field];
+      if (value && !allowed.includes(value)) {
+        validationErrors.push(`Campo "${field}": valor "${value}" no permitido. Valores válidos: ${allowed.join(", ")}`);
+      }
+    }
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ error: "Valores no válidos", details: validationErrors });
     }
 
     const item = await createMondayItem(formData);
