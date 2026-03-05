@@ -7,29 +7,20 @@ const MONDAY_API_URL = "https://api.monday.com/v2";
 const MONDAY_API_KEY  = process.env.MONDAY_API_KEY;
 const MONDAY_BOARD_ID = process.env.MONDAY_BOARD_ID;
 const MONDAY_GROUP_ID = process.env.MONDAY_GROUP_ID || "topics";
-const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET;   // opcional pero recomendado
+const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET;
 
 // ── Mapeo de campos de Elementor → columnas de Monday ────────
-// Las claves izquierdas deben coincidir con los nombres de campo en tu formulario Elementor
+// Clave izquierda = ID del campo en tu formulario de Elementor
 const FIELD_MAP = {
-  nombre:             { id: "name",             type: "name"   },  // título del item, obligatorio
-  email:              { id: "lead_email",        type: "email"  },
-  codigo_postal:      { id: "text_mm12yqx0",    type: "text"   },
-  provincia:          { id: "text_mkwhbx60",    type: "text"   },
-  delegacion:         { id: "text_mkwhpd6x",    type: "text"   },
-  tipo_gestion:       { id: "color_mks7cm2f",   type: "status" },
-  origen_contacto:    { id: "color_mks9ct6h",   type: "status" },
-  intento_contacto:   { id: "color_mks9aktw",   type: "status" },
-  estado_lead:        { id: "lead_status",       type: "status" },
-  rango_edad:         { id: "color_mksg46wh",   type: "status" },
-  visita_realizada:   { id: "color_mm0et2vw",   type: "status" },
-  presupuesto:        { id: "color_mm1274dx",   type: "status" },
-  destino_vivienda:   { id: "color_mm0ee37e",   type: "status" },
-  unidad_familiar:    { id: "color_mm0ew60h",   type: "status" },
-  estado_civil:       { id: "color_mm0ew45j",   type: "status" },
-  num_hijos:          { id: "color_mm0e3c9q",   type: "status" },
-  ingresos_mensuales: { id: "color_mm0eg8bk",   type: "status" },
-  urgencia_compra:    { id: "color_mm0ejxxb",   type: "status" },
+  nombre_y_apellidos:   { id: "name",              type: "name"     },  // Nombre
+  correo_electronico:   { id: "lead_email",         type: "email"    },  // E-mail
+  telefono:             { id: "lead_phone",          type: "phone"    },  // Teléfono
+  codigo_postal:        { id: "text_mm12yqx0",      type: "text"     },  // Código Postal
+  destino_de_vivienda:  { id: "color_mm0ee37e",     type: "status"   },  // Destino vivienda
+  edad:                 { id: "color_mksg46wh",     type: "status"   },  // Rango Edad
+  presupuesto_estimado: { id: "color_mm1274dx",     type: "status"   },  // Presupuesto
+  num_dormitorios:      { id: "dropdown_mksdgtr8",  type: "dropdown" },  // Detalle tipología
+  idioma_de_contacto:   { id: "dropdown_mm131mxd",  type: "dropdown" },  // Idioma preferido
 };
 
 // ── Formateadores por tipo de columna de Monday ──────────────
@@ -38,7 +29,7 @@ function formatColumnValue(type, value) {
 
   switch (type) {
     case "name":
-      return value; // se usa como item_name, no en column_values
+      return value;
 
     case "email":
       return JSON.stringify({ email: value, text: value });
@@ -59,6 +50,9 @@ function formatColumnValue(type, value) {
     case "status":
       return JSON.stringify({ label: value });
 
+    case "dropdown":
+      return JSON.stringify({ labels: [value] });
+
     case "numbers":
       return String(parseFloat(value) || 0);
 
@@ -72,7 +66,7 @@ function buildColumnValues(formData) {
   const columns = {};
 
   for (const [formField, config] of Object.entries(FIELD_MAP)) {
-    if (config.type === "name") continue; // se pasa como item_name
+    if (config.type === "name") continue;
     const rawValue = formData[formField];
     if (!rawValue) continue;
 
@@ -82,15 +76,20 @@ function buildColumnValues(formData) {
     }
   }
 
+  // Estado Lead siempre fijo como "Lead nuevo"
+  columns["lead_status"] = JSON.stringify({ label: "Lead nuevo" });
+
+  // Origen del contacto siempre fijo como "Formulario web"
+  columns["color_mks9ct6h"] = JSON.stringify({ label: "Formulario web" });
+
   return JSON.stringify(columns);
 }
 
-// ── Extrae el nombre del item (título de la fila en Monday) ──
+// ── Extrae el nombre del item ─────────────────────────────────
 function getItemName(formData) {
   return (
-    formData["nombre"] ||
-    formData["name"]   ||
-    formData["email"]  ||
+    formData["nombre_y_apellidos"] ||
+    formData["correo_electronico"] ||
     `Lead ${new Date().toLocaleString("es-ES")}`
   );
 }
@@ -134,7 +133,7 @@ async function createMondayItem(formData) {
   return result.data.create_item;
 }
 
-// ── Verifica el secreto del webhook (seguridad opcional) ─────
+// ── Verifica el secreto del webhook ──────────────────────────
 function verifySecret(req) {
   if (!WEBHOOK_SECRET) return true;
   const incoming = req.headers["x-webhook-secret"] || req.headers["authorization"];
@@ -147,9 +146,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-webhook-secret");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método no permitido. Usa POST." });
@@ -161,7 +158,7 @@ export default async function handler(req, res) {
 
   if (!MONDAY_API_KEY || !MONDAY_BOARD_ID) {
     return res.status(500).json({
-      error: "Configuración incompleta. Revisa MONDAY_API_KEY y MONDAY_BOARD_ID en las variables de entorno.",
+      error: "Configuración incompleta. Revisa MONDAY_API_KEY y MONDAY_BOARD_ID.",
     });
   }
 
@@ -183,19 +180,11 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: "Item creado en Monday.com correctamente.",
-      item: {
-        id:   item.id,
-        name: item.name,
-        url:  item.url,
-      },
+      item: { id: item.id, name: item.name, url: item.url },
     });
 
   } catch (error) {
     console.error("❌ Error al crear item en Monday:", error.message);
-
-    return res.status(500).json({
-      success: false,
-      error:   error.message,
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
