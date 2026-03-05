@@ -10,17 +10,26 @@ const MONDAY_GROUP_ID = process.env.MONDAY_GROUP_ID || "topics";
 const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET;   // opcional pero recomendado
 
 // ── Mapeo de campos de Elementor → columnas de Monday ────────
-// Ajusta los IDs de columna según tu tablero en Monday.com
-// Para ver tus column_ids: Settings → Columns en Monday, o usa la query de /api/columns
+// Las claves izquierdas deben coincidir con los nombres de campo en tu formulario Elementor
 const FIELD_MAP = {
-  // campo_elementor : { id: "column_id_monday", type: "tipo" }
-  nombre:    { id: "name",                 type: "name"    },   // siempre obligatorio
-  email:     { id: "email",               type: "email"   },
-  telefono:  { id: "phone",               type: "phone"   },
-  mensaje:   { id: "long_text__1",        type: "text"    },
-  empresa:   { id: "text__1",             type: "text"    },
-  fecha:     { id: "date4",               type: "date"    },
-  estado:    { id: "status",              type: "status"  },
+  nombre:             { id: "name",             type: "name"   },  // título del item, obligatorio
+  email:              { id: "lead_email",        type: "email"  },
+  codigo_postal:      { id: "text_mm12yqx0",    type: "text"   },
+  provincia:          { id: "text_mkwhbx60",    type: "text"   },
+  delegacion:         { id: "text_mkwhpd6x",    type: "text"   },
+  tipo_gestion:       { id: "color_mks7cm2f",   type: "status" },
+  origen_contacto:    { id: "color_mks9ct6h",   type: "status" },
+  intento_contacto:   { id: "color_mks9aktw",   type: "status" },
+  estado_lead:        { id: "lead_status",       type: "status" },
+  rango_edad:         { id: "color_mksg46wh",   type: "status" },
+  visita_realizada:   { id: "color_mm0et2vw",   type: "status" },
+  presupuesto:        { id: "color_mm1274dx",   type: "status" },
+  destino_vivienda:   { id: "color_mm0ee37e",   type: "status" },
+  unidad_familiar:    { id: "color_mm0ew60h",   type: "status" },
+  estado_civil:       { id: "color_mm0ew45j",   type: "status" },
+  num_hijos:          { id: "color_mm0e3c9q",   type: "status" },
+  ingresos_mensuales: { id: "color_mm0eg8bk",   type: "status" },
+  urgencia_compra:    { id: "color_mm0ejxxb",   type: "status" },
 };
 
 // ── Formateadores por tipo de columna de Monday ──────────────
@@ -42,7 +51,6 @@ function formatColumnValue(type, value) {
       return JSON.stringify({ text: value });
 
     case "date": {
-      // acepta "2024-01-31" o Date object
       const d = new Date(value);
       const dateStr = d.toISOString().split("T")[0];
       return JSON.stringify({ date: dateStr });
@@ -128,14 +136,13 @@ async function createMondayItem(formData) {
 
 // ── Verifica el secreto del webhook (seguridad opcional) ─────
 function verifySecret(req) {
-  if (!WEBHOOK_SECRET) return true; // sin secreto, se permite todo
+  if (!WEBHOOK_SECRET) return true;
   const incoming = req.headers["x-webhook-secret"] || req.headers["authorization"];
   return incoming === WEBHOOK_SECRET || incoming === `Bearer ${WEBHOOK_SECRET}`;
 }
 
 // ── Handler principal de Vercel ──────────────────────────────
 export default async function handler(req, res) {
-  // CORS — permite llamadas desde Elementor / WordPress
   res.setHeader("Access-Control-Allow-Origin",  "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-webhook-secret");
@@ -148,12 +155,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido. Usa POST." });
   }
 
-  // Verificar secreto
   if (!verifySecret(req)) {
     return res.status(401).json({ error: "No autorizado. Secreto incorrecto." });
   }
 
-  // Verificar variables de entorno
   if (!MONDAY_API_KEY || !MONDAY_BOARD_ID) {
     return res.status(500).json({
       error: "Configuración incompleta. Revisa MONDAY_API_KEY y MONDAY_BOARD_ID en las variables de entorno.",
@@ -163,7 +168,6 @@ export default async function handler(req, res) {
   try {
     const formData = req.body;
 
-    // Log en desarrollo
     if (process.env.NODE_ENV !== "production") {
       console.log("📨 Datos recibidos de Elementor:", JSON.stringify(formData, null, 2));
     }
