@@ -36,7 +36,8 @@ const ALLOWED_VALUES = {
 // ── Mapeo campos Elementor → columnas Monday ──────────────────
 // Las claves son los nombres EXACTOS que envía Elementor Pro
 const FIELD_MAP = {
-  "Nombre y Apellidos":   { id: "name",             type: "name"     },
+  "Nombre y Apellidos":        { id: "name", type: "name" },
+  "No Label nombre_y_apellidos": { id: "name", type: "name" },
   "Correo electrónico":   { id: "lead_email",        type: "email"    },
   "Teléfono":             { id: "lead_phone",         type: "phone"    },
   "Código Postal":        { id: "text_mm12yqx0",     type: "text"     },
@@ -99,6 +100,7 @@ function buildColumnValues(formData) {
 function getItemName(formData) {
   return (
     formData["Nombre y Apellidos"] ||
+    formData["No Label nombre_y_apellidos"] ||
     formData["Correo electrónico"] ||
     `Lead ${new Date().toLocaleString("es-ES")}`
   );
