@@ -162,6 +162,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Body vacío." });
     }
 
+    // Normalizar espacios en operadores (">30" → "> 30", "<65" → "< 65")
+    for (const key of Object.keys(formData)) {
+      if (typeof formData[key] === "string") {
+        formData[key] = formData[key]
+          .replace(/^>(\d)/, "> $1")
+          .replace(/^<(\d)/, "< $1");
+      }
+    }
+
     // Validación de valores permitidos (soporta múltiples separados por coma)
     const errors = [];
     for (const [field, allowed] of Object.entries(ALLOWED_VALUES)) {
