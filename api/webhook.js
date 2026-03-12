@@ -88,7 +88,7 @@ function buildColumnValues(formData) {
   columns["date_mksbjga2"] = { date: today };
 
   columns["boolean_mkvw55qp"] = { checked: "true" };          // Política de Privacidad
-  columns["color_mm165spb"]    = { label: "Lead nuevo" };      // Estado Lead
+  columns["color_mm165spb"]    = { label: "Lead Nuevo" };      // Estado Lead
   columns["color_mks9ct6h"]    = { label: "Formulario web" };  // Origen del contacto
   columns["color_mks7cm2f"]    = { label: "Mail" };            // Tipo de gestión
 
@@ -165,6 +165,16 @@ export default async function handler(req, res) {
 
     if (!formData || Object.keys(formData).length === 0) {
       return res.status(400).json({ error: "Body vacío." });
+    }
+
+    // Corregir typos conocidos de valores del formulario
+    const TYPO_MAP = {
+      "Salas polivantes": "Salas polivalentes",
+    };
+    for (const key of Object.keys(formData)) {
+      if (typeof formData[key] === "string") {
+        formData[key] = TYPO_MAP[formData[key]] ?? formData[key];
+      }
     }
 
     // Normalizar espacios en operadores (">30" → "> 30", "<65" → "< 65")
