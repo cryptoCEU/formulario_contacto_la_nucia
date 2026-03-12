@@ -45,6 +45,7 @@ const FIELD_MAP = {
   "Presupuesto estimado": { id: "color_mm1274dx",    type: "status"   },
   "Nº de Dormitorios":    { id: "dropdown_mksd92xa", type: "dropdown" },
   "Idioma de Contacto":   { id: "dropdown_mm131mxd", type: "dropdown" },
+  "Tus zonas comunes soñadas": { id: "dropdown_mm16dpss", type: "dropdown" },
 };
 
 // ── Formateadores por tipo ────────────────────────────────────
@@ -82,8 +83,12 @@ function buildColumnValues(formData) {
   }
 
   // Valores fijos automáticos
+  // Fecha de entrada automática (hoy)
+  const today = new Date().toISOString().split("T")[0];
+  columns["date_mksbjga2"] = { date: today };
+
   columns["boolean_mkvw55qp"] = { checked: "true" };          // Política de Privacidad
-  columns["lead_status"]       = { label: "Lead nuevo" };      // Estado Lead
+  columns["color_mm165spb"]    = { label: "Lead nuevo" };      // Estado Lead
   columns["color_mks9ct6h"]    = { label: "Formulario web" };  // Origen del contacto
   columns["color_mks7cm2f"]    = { label: "Mail" };            // Tipo de gestión
 
