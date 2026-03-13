@@ -47,6 +47,17 @@ const FIELD_MAP = {
   "Nº de Dormitorios":    { id: "dropdown_mksd92xa", type: "dropdown" },
   "Idioma de Contacto":   { id: "dropdown_mm131mxd", type: "dropdown" },
   "Tus zonas comunes soñadas": { id: "dropdown_mm16dpss", type: "dropdown" },
+  // ── Campos en inglés ──────────────────────────────────────────
+  "Name & Surname":         { id: "name",             type: "name"     },
+  "Email":                  { id: "lead_email",        type: "email"    },
+  "Phone Number":           { id: "lead_phone",         type: "phone"    },
+  "Postal Code":            { id: "text_mm12yqx0",     type: "text"     },
+  "Housing Destination":    { id: "color_mm0ee37e",    type: "status"   },
+  "Age":                    { id: "color_mksg46wh",    type: "status"   },
+  "Estimated budget":       { id: "color_mm1274dx",    type: "status"   },
+  "Number of Bedrooms":     { id: "dropdown_mksd92xa", type: "dropdown" },
+  "Contact Language":       { id: "dropdown_mm131mxd", type: "dropdown" },
+  "Your dream common areas":{ id: "dropdown_mm16dpss", type: "dropdown" },
 };
 
 // ── Formateadores por tipo ────────────────────────────────────
@@ -100,6 +111,7 @@ function buildColumnValues(formData) {
 function getItemName(formData) {
   return (
     formData["Nombre y Apellidos"] ||
+    formData["Name & Surname"] ||
     formData["No Label nombre_y_apellidos"] ||
     formData["Correo electrónico"] ||
     `Lead ${new Date().toLocaleString("es-ES")}`
@@ -167,6 +179,86 @@ export default async function handler(req, res) {
 
     if (!formData || Object.keys(formData).length === 0) {
       return res.status(400).json({ error: "Body vacío." });
+    }
+
+    // Traducir valores en inglés a etiquetas en español de Monday
+    const EN_ES_MAP = {
+      // Housing Destination
+      "First home":        "Primera vivienda",
+      "Second home":       "Segunda vivienda",
+      "Investment":        "Inversión",
+      "Replacement":       "Reposición",
+      // Age
+      "> 30":  "> 30",
+      "31 - 45": "31 - 45",
+      "46 - 55": "46 - 55",
+      "56 - 65": "56 - 65",
+      "< 65":  "< 65",
+      // Contact Language
+      "Spanish":   "Castellano",
+      "German":    "Alemán",
+      "Catalan":   "Catalán",
+      "Croatian":  "Croata",
+      "French":    "Francés",
+      "English":   "Inglés",
+      "Others":    "Otros",
+      "Polish":    "Polaco",
+      "Russian":   "Ruso",
+      "Swedish":   "Sueco",
+      "Ukrainian": "Ucraniano",
+      // Number of Bedrooms
+      "2 Bedrooms":         "2 Dormitorios",
+      "3 Bedrooms":         "3 Dormitorios",
+      "4 Bedrooms":         "4 Dormitorios",
+      "Commercial Space":   "Local Comercial",
+      "Garage":             "Garaje",
+      "Storage Room":       "Trastero",
+      // Budget
+      "- 100K": "- 100K",
+      "100K - 150K": "100K - 150K",
+      "150K - 200K": "150K - 200K",
+      "200K - 250K": "200K - 250K",
+      "250K - 300K": "250K - 300K",
+      "300K - 350K": "300K - 350K",
+      "350K - 400K": "350K - 400K",
+      "400K - 450K": "400K - 450K",
+      "450K - 500K": "450K - 500K",
+      "500K - 550K": "500K - 550K",
+      "550K - 600K": "550K - 600K",
+      "600K - 650K": "600K - 650K",
+      "650K - 700K": "650K - 700K",
+      "700K - 750K": "700K - 750K",
+      "750K - 800K": "750K - 800K",
+      "800K - 850K": "800K - 850K",
+      "850K - 900K": "850K - 900K",
+      "900K - 950K": "900K - 950K",
+      "950K - 1M":   "950K - 1M",
+      "+ 1M":        "+ 1M",
+      // Common areas
+      "Infinity Pool":       "Piscina Infinity",
+      "Coworking Space":     "Coworking",
+      "Gym":                 "Gimnasio",
+      "Multipurpose Rooms":  "Salas polivalentes",
+      "Garden Areas":        "Zonas ajardinadas",
+      "Children's Area":    "Zona Infantil",
+      "Barbecue":            "Barbacoa",
+      "Pet Care":            "Pet Care",
+      "Solarium":            "Solárium",
+    };
+
+    for (const key of Object.keys(formData)) {
+      if (typeof formData[key] === "string") {
+        // Traducir valor único o múltiples separados por coma
+        formData[key] = formData[key]
+          .split(",")
+          .map(v => EN_ES_MAP[v.trim()] ?? v.trim())
+          .join(", ");
+      }
+    }
+
+    // También traducir el nombre del item si viene de inglés
+    if (formData["Name & Surname"]) {
+      formData["Nombre y Apellidos"] = formData["Name & Surname"];
     }
 
     // Corregir typos conocidos de valores del formulario
